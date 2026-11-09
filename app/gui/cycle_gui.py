@@ -1,10 +1,12 @@
-
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date
 
+from tkcalendar import DateEntry
+
 from intelligent_cycle_tracker.automatic_cycle_tracker.cycle_calculator import (
-    calculate_bleeding_duration
+    calculate_bleeding_duration,
+    estimate_next_period
 )
 
 
@@ -13,89 +15,125 @@ class CycleGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CycleCare - Cycle Calculator")
-        self.root.geometry("400x320")
+        self.root.geometry("450x480")
         self.root.resizable(False, False)
 
         self.create_widgets()
 
     def create_widgets(self):
 
-        # Main container
         main = ttk.Frame(self.root, padding=25)
         main.pack(fill="both", expand=True)
 
-        # Heading
         ttk.Label(
             main,
             text="Menstrual Cycle Calculator",
             font=("Arial", 16, "bold")
-        ).pack(pady=(0, 20))
+        ).pack(pady=(0, 25))
 
         # First day
         ttk.Label(
             main,
-            text="First day of menstruation (YYYY-MM-DD)"
+            text="First day of menstruation"
         ).pack(anchor="w")
 
-        self.first_day = ttk.Entry(main, width=35)
-        self.first_day.pack(fill="x", pady=(5, 15))
+        self.first_day = DateEntry(
+            main,
+            width=35,
+            date_pattern="yyyy-mm-dd",
+            maxdate=date.today()
+        )
+        self.first_day.pack(fill="x", pady=(5, 20))
 
         # Last day
         ttk.Label(
             main,
-            text="Last day of menstruation (YYYY-MM-DD)"
+            text="Last day of menstruation"
         ).pack(anchor="w")
 
-        self.last_day = ttk.Entry(main, width=35)
+        self.last_day = DateEntry(
+            main,
+            width=35,
+            date_pattern="yyyy-mm-dd",
+            maxdate=date.today()
+        )
         self.last_day.pack(fill="x", pady=(5, 20))
+
+        # Cycle length
+        ttk.Label(
+            main,
+            text="Your cycle length (days)"
+        ).pack(anchor="w")
+
+        self.cycle_length = tk.IntVar(value=28)
+
+        self.cycle_spinner = ttk.Spinbox(
+            main,
+            from_=1,
+            to=100,
+            increment=1,
+            textvariable=self.cycle_length,
+            width=10,
+            justify="center"
+        )
+        self.cycle_spinner.pack(anchor="w", pady=(5, 20))
 
         # Calculate button
         ttk.Button(
             main,
-            text="Calculate Bleeding Duration",
+            text="Calculate",
             command=self.calculate
-        ).pack(fill="x", pady=5)
+        ).pack(fill="x")
 
-        # Result
+        # Results
         self.result = ttk.Label(
             main,
-            text="Bleeding duration: --",
-            font=("Arial", 12, "bold")
+            text="Your results will appear here.",
+            font=("Arial", 11, "bold"),
+            justify="center"
         )
-        self.result.pack(pady=20)
+        self.result.pack(pady=25)
 
     def calculate(self):
 
         try:
-            first = date.fromisoformat(
-                self.first_day.get().strip()
-            )
+            first = self.first_day.get_date()
+            last = self.last_day.get_date()
+            cycle_length = self.cycle_length.get()
 
-            last = date.fromisoformat(
-                self.last_day.get().strip()
-            )
+            if not 1 <= cycle_length <= 100:
+                raise ValueError(
+                    "Cycle length must be between 1 and 100 days."
+                )
 
             duration = calculate_bleeding_duration(
                 first,
                 last
             )
 
-            self.result.config(
-                text=f"Bleeding duration: {duration} days"
+            next_period = estimate_next_period(
+                first,
+                cycle_length
             )
 
-        except ValueError as error:
+            self.result.config(
+                text=(
+                    f"Bleeding duration: {duration} days\n"
+                    f"Cycle length: {cycle_length} days\n\n"
+                    f"ESTIMATED NEXT PERIOD\n"
+                    f"{next_period.strftime('%B %d, %Y')}"
+                )
+            )
+
+        except (ValueError, TypeError, tk.TclError) as error:
             messagebox.showerror(
-                "Invalid Input",
-                str(error) if str(error) else
-                "Enter valid dates in YYYY-MM-DD format."
+                "Invalid Information",
+                str(error)
             )
 
 
 if __name__ == "__main__":
 
     root = tk.Tk()
-
     app = CycleGUI(root)
-
     root.mainloop()

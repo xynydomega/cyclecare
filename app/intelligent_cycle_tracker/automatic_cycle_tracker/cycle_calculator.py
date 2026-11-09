@@ -1,4 +1,4 @@
-
+﻿
 from dataclasses import dataclass
 from datetime import date
 
@@ -58,3 +58,15 @@ def create_cycle_record(
         bleeding_duration=bleeding_duration,
         cycle_length=cycle_length
     )
+from datetime import timedelta
+
+def estimate_next_period(first_day, cycle_length):
+    """Estimate the first day of the next menstruation."""
+
+    if isinstance(cycle_length, bool) or not isinstance(cycle_length, int):
+        raise TypeError("Cycle length must be a whole number.")
+
+    if cycle_length <= 0:
+        raise ValueError("Cycle length must be greater than zero.")
+
+    return first_day + timedelta(days=cycle_length)
